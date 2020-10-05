@@ -19,13 +19,24 @@ interface IGenre {
   name: string;
 }
 
-function cosineSim(A: number[], B: number[]) {
-  const length = A.length > B.length ? B.length : A.length;
+const TOP_NUMBER = 5;
+const TARGET_ID = '5d626d873c02b939b9b68df4';
+
+function cosineSim(a: number[], b: number[]) {
+  const A = [...a];
+  const B = [...b];
+
+  if (A.length > B.length) {
+    B.push(...([...new Array(A.length - B.length)].map(() => 0)));
+  } else if (B.length > A.length) {
+    A.push(...([...new Array(B.length - A.length)].map(() => 0)));
+  }
+  
   let dotproduct = 0;
   let mA = 0;
   let mB = 0;
 
-  for (let i = 0; i < length; i++){
+  for (let i = 0; i < A.length; i++){
     dotproduct += (A[i] * B[i]);
     mA += (A[i] * A[i]);
     mB += (B[i] * B[i]);
@@ -48,8 +59,7 @@ async function main() {
   });
   const genresDataset: IGenre[] = JSON.parse(genresJSON);
 
-  const targetId = "5d626d873c02b939b9b68df4";
-  const targetFilm = filmsDataset.find(f => f.id === targetId);
+  const targetFilm = filmsDataset.find(f => f.id === TARGET_ID);
 
   targetFilm.genresVector = targetFilm.genres.sort((a, b) => {
     return a.localeCompare(b);
@@ -60,6 +70,10 @@ async function main() {
 
   const scores = new Array();
   for (const film of filmsDataset) {
+    if (film.id === TARGET_ID) {
+      continue;
+    }
+
     film.genresVector = film.genres.sort((a, b) => {
       return a.localeCompare(b);
     }).map((gn) => {
@@ -74,8 +88,15 @@ async function main() {
   }
 
   const sorted = scores.sort((a, b) => -(a.genres - b.genres));
+  const top = sorted.slice(0, TOP_NUMBER).map((s) => {
+    const film = filmsDataset.find((f) => f.id === s.id);
+    
+    return { title: film.title, score: s.genres };
+  });
 
-  console.log("RES: ", sorted);
+  console.log(`Top ${TOP_NUMBER} most similar to ${targetFilm.title} (according to genres):\n`);
+  console.log(top.map(t => `"${t.title}" (with similarity score ${t.score})`).join('\n'));
+  console.log('\n');
 }
 
 main();
